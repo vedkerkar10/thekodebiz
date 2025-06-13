@@ -1,0 +1,135 @@
+name: Parallel Build and Add to Release
+
+on:
+  workflow_dispatch:  # Allow manual triggering of the workflow
+
+permissions:
+  contents: write       # Required to create releases and upload assets
+
+jobs:
+  build-node:
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      # Step 3: Build Next.js App
+      - name: Build Next.js App
+        run: |
+          cd thekode
+          npm install
+          npm run build
+
+      # Step 4: Save Next.js build output
+      - name: Save Next.js build output
+        uses: actions/upload-artifact@v3
+        with:
+          name: next-build
+          path: thekode/out
+    strategy:
+      fail-fast: false
+
+  build-python:
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
+      # Step 3: Build Python App
+      - name: Build Python App
+        run: |
+          cd backend
+          python -m venv .venv
+          .venv\Scripts\activate
+          pip install -r requirements.txt
+          pyinstaller app.spec -y
+          mkdir dist\app\_internal\coreforecast\lib\Release\
+          copy .\libcoreforecast.dll dist\app\_internal\coreforecast\lib\Release\
+          copy .\server_details.json dist\app\server_details.json
+          copy .\algos.json dist\app\algos.json
+          copy .\seasonality.json dist\app\seasonality.json
+
+      # Step 4: Save Python build output
+      - name: Save Python build output
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-build
+          path: backend/dist
+    strategy:
+      fail-fast: false
+
+
+  package-and-release:
+    runs-on: windows-latest
+    needs: [build-node, build-python]
+
+    steps:
+      # Step 1: Download build artifacts
+      - name: Download Next.js build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: next-build
+      - name: Download Python build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: python-build
+
+      # Step 2: Copy additional files into the package structure
+      - name: Copy additional files
+        run: |
+          mkdir dist\app\public\out
+          xcopy .next dist\app\public\out /E /I
+
+      # Step 3: Install 7-Zip
+      - name: Install 7-Zip
+        run: |
+          choco install 7zip -y
+
+      # Step 4: Compress output with 7-Zip
+      - name: Compress output folders with 7-Zip
+        run: |
+          7z a dist.7z dist/app
+
+      # Step 5: Create or Update the Release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v1.${{ github.run_number }}
+          release_name: Release v1.${{ github.run_number }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 6: Upload the compressed output as a release asset
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist.7z
+          asset_name: dist.7z
+          asset_content_type: application/x-7z-compressed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    strategy:
+      fail-fast: false
+
+
+# Add fail-fast to stop the entire workflow if any job fails

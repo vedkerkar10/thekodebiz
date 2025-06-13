@@ -1,0 +1,73 @@
+- Name: showConfig
+  Route: /config
+  Methods: GET
+  Info: Retrieves and shows the configuration.
+
+- Name: get_file_data
+  Route: /GetData
+  Methods: POST
+  Info: Retrieves data from an uploaded file, cleans it, and converts it to numerical values.
+  Inputs:
+    - file: uploaded file (file)
+    - file_type: string specifying whether the file is for training or prediction (string)
+
+- Name: get_corr
+  Route: /SetOptions
+  Methods: POST
+  Info: Finds the correlation of features with the target.
+  Inputs:
+    - target: target column name as string (string)
+    - features: list of feature column names as a JSON array (JSON array of strings)
+
+- Name: build_models
+  Route: /Train
+  Methods: POST
+  Info: Evaluates algorithms to identify the most optimal predictive model and ranks these models.
+  Inputs:
+    - problem_type: algorithm category (string)
+    - target: target column name as string (string)
+    - feature_list: list of feature column names as a JSON array (JSON array of strings)
+
+- Name: SetValues
+  Route: /SetValue
+  Methods: POST
+  Info: Sets values for global variables.
+  Inputs:
+    - attr: attribute name (string)
+    - value: value to set for the attribute (depends on attribute datatype)
+
+- Name: predict_values
+  Route: /Predict
+  Methods: POST
+  Info: Predicts the value of the target using the best model.
+  Inputs:
+    - algorithm: algorithm category (string)
+    - target: target column name as string (string)
+    - features: list of feature column names as a JSON array (JSON array of strings)
+
+- Name: get_algorithm
+  Route: /Start
+  Methods: GET
+  Info: Retrieves the list of values in the Algorithm Category select box.
+
+- Name: reset_data
+  Route: /Reset
+  Methods: GET
+  Info: Resets variables on change of Training file.
+
+- Name: reset_predict_data
+  Route: /Reset_Predict
+  Methods: GET
+  Info: Resets variables on change of Predict file.
+
+- Name: set_unique_features
+  Route: /Set_Features_Data
+  Methods: GET, POST
+  Info: Sets unique features data.
+
+- Name: get_unique_values
+  Route: /Get_Unique_Values
+  Methods: GET, POST
+  Info: Retrieves unique values of the remaining Feature columns based on the provided conditions.
+  Inputs:
+    - condition_values: dictionary containing conditions as key-value pairs (dictionary)
